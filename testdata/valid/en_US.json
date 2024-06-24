@@ -1,0 +1,6 @@
+{
+  "welcome.login": "Welcome :User",
+  "convert.case": "Total: :total",
+  "multiple": "I have :total :fruit and will attempt to get :more more :fruit.",
+  "required": ":Field is required"
+}
