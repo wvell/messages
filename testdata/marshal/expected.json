@@ -1,0 +1,8 @@
+{
+  "attributes": {
+    "email": "Email",
+    "required": "Required"
+  },
+  "one": "One",
+  "zero": "Zero"
+}
