@@ -2,7 +2,11 @@
 This repository handles message translations using simple JSON files for Go (Golang) projects. The translations can be specific to a language or a combination of language and region.
 
 ## Usage
+
+### Message extraction
 Users can use the msgextractor tool to extract messages from your go source files. The messages will be added/removed to/from your translation files.
+
+Note: Only messages using direct strings will be extracted. Messages containing variables will not be extracted. The msgextractor will remove manually added translations if they use variables. To avoid this, use direct strings in your messages.
 
 ```bash
 msgextractor --translations path_to_translation_files --src path_to_go_source_files
@@ -11,7 +15,7 @@ msgextractor --translations path_to_translation_files --src path_to_go_source_fi
 msgextractor --translations path_to_translation_files --src path_to_go_source_files --default-language en
 ```
 
-## How to use it in code
+### How to use it in code
 ```go
 // Create a new translator.
 tr, err := messages.FromDir("dir")
