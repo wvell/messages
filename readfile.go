@@ -81,6 +81,17 @@ func RawTranslationsFromFile(filename string) (map[string]string, error) {
 	defer f.Close()
 
 	var rawMessages map[string]string
+
+	stat, err := f.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("error getting file info: %w", err)
+	}
+
+	// If the file is empty, return an empty map.
+	if stat.Size() == 0 {
+		return rawMessages, nil
+	}
+
 	err = json.NewDecoder(f).Decode(&rawMessages)
 	if err != nil {
 		return nil, fmt.Errorf("decoding file: %w", err)

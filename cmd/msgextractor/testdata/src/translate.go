@@ -24,7 +24,7 @@ func translate(ctx context.Context) {
 		log.Fatal(err)
 	}
 
-	message := tr.Translate(ctx, "login.welcome", nil)
+	message := tr.Translate(ctx, "login.welcome", map[string]any{"user": "john"})
 	fmt.Println(message)
 
 	// Use zipcode twice.
