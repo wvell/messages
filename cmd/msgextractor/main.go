@@ -22,9 +22,10 @@ type matcher struct {
 }
 
 func main() {
-	var srcDir, translationDir string
+	var srcDir, translationDir, defaultLang string
 	flag.StringVar(&srcDir, "src", ".", "The directory that contains the go source files where the translations are used. The search is recursive and includes all subdirectories.")
 	flag.StringVar(&translationDir, "dst", "", "The directory that contains the translation files.")
+	flag.StringVar(&defaultLang, "default-lang", "", "Provide a default language to use when adding new translations. If not provided, new translations will be added as empty strings.")
 	flag.Usage = func() {
 		fmt.Print(`Usage: msgextractor -src ./ -dst ./translations
 
@@ -46,23 +47,24 @@ Flags:
 		log.Fatalf("error collecting translations: %v", err)
 	}
 
-	err = combineTranslations(translationDir, activeTranslations)
+	err = combineTranslations(translationDir, activeTranslations, defaultLang)
 	if err != nil {
 		log.Fatalf("error combining translations: %v", err)
 	}
 }
 
-// combineTranslations reads all translation entries from all files in the translationsDir.
+// combineTranslations reads all translations from the files in the translationsDir.
 // It performs the following actions to synchronize the active translations used in code to the translation files:
-// 1. Removes translations from files if they are not present in the activeTranslations.
-// 2. Adds translations to files if they are present in the activeTranslations but missing from the file.
-// 3. Sorts the translations alphabetically within each file.
+//  1. Removes translations from files if they are not present in the activeTranslations.
+//  2. Adds translations to files if they are present in the activeTranslations but missing from the file.
+//     If defaultLanguage is given a new translation will not be added as empty string but will take the current value of the default language.
+//  3. Sorts the translations alphabetically within each file.
 //
 // This ensures that each translation file in the directory contains an up-to-date, consistent,
 // and alphabetically sorted set of translations based activeTranslations.
 //
 // Note: activeTranslations is expected to be deduplicated and sorted.
-func combineTranslations(translationsDir string, activeTranslations []string) error {
+func combineTranslations(translationsDir string, activeTranslations []string, defaultLanguage string) error {
 	files, err := messages.TranslationFilesFromDir(translationsDir)
 	if err != nil {
 		return fmt.Errorf("getting translation files: %w", err)
@@ -72,22 +74,49 @@ func combineTranslations(translationsDir string, activeTranslations []string) er
 		return fmt.Errorf("there are no translation files in dir %s, create an empty file to write translations", translationsDir)
 	}
 
-	for _, file := range files {
+	type langTranslations struct {
+		filename        string
+		rawTranslations map[string]string
+	}
+
+	translations := make(map[string]langTranslations)
+	for languageID, file := range files {
+		rawTranslations, err := messages.RawTranslationsFromFile(file)
+		if err != nil {
+			return fmt.Errorf("reading file %s: %w", file, err)
+		}
+
+		translations[languageID] = langTranslations{
+			filename:        file,
+			rawTranslations: rawTranslations,
+		}
+	}
+
+	var defaultTranslation *langTranslations
+	if defaultLanguage != "" {
+		translation, ok := translations[defaultLanguage]
+		if !ok {
+			return fmt.Errorf("default language %s not found in translation files %q", defaultLanguage, keys(translations))
+		}
+
+		defaultTranslation = &translation
+	}
+
+	for _, rawTranslations := range translations {
 		newTranslations := &bytes.Buffer{}
 		_, err = newTranslations.WriteString("{\n")
 		if err != nil {
 			return fmt.Errorf("error writing buffer: %w", err)
 		}
 
-		rawTranslations, err := messages.RawTranslationsFromFile(file)
-		if err != nil {
-			return fmt.Errorf("reading file %s: %w", file, err)
-		}
-
 		for i, active := range activeTranslations {
-			val, ok := rawTranslations[active]
+			val, ok := rawTranslations.rawTranslations[active]
 			if !ok {
-				val = ""
+				if defaultTranslation != nil {
+					val = defaultTranslation.rawTranslations[active]
+				} else {
+					val = ""
+				}
 			}
 
 			var line string = fmt.Sprintf("\t\"%s\": \"%s\"", active, val)
@@ -107,7 +136,7 @@ func combineTranslations(translationsDir string, activeTranslations []string) er
 			return fmt.Errorf("error writing buffer: %w", err)
 		}
 
-		os.WriteFile(file, newTranslations.Bytes(), os.ModePerm)
+		os.WriteFile(rawTranslations.filename, newTranslations.Bytes(), os.ModePerm)
 	}
 
 	return nil
@@ -282,4 +311,14 @@ func removeDuplicates(input []string) []string {
 	}
 
 	return result
+}
+
+// keys returns the keys of a map as a slice.
+func keys[K comparable, V any](src map[K]V) []K {
+	keys := make([]K, 0, len(src))
+	for k := range src {
+		keys = append(keys, k)
+	}
+
+	return keys
 }

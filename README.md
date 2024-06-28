@@ -6,6 +6,9 @@ Users can use the msgextractor tool to extract messages from your go source file
 
 ```bash
 msgextractor --translations path_to_translation_files --src path_to_go_source_files
+
+// Use --default-language to set the default language as source for the translations. Missing translations for other languages will use this as the source.
+msgextractor --translations path_to_translation_files --src path_to_go_source_files --default-language en
 ```
 
 ## How to use it in code
