@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -76,7 +77,7 @@ func combineTranslations(translationsDir string, activeTranslations []string, de
 
 	type langTranslations struct {
 		filename        string
-		rawTranslations map[string]string
+		rawTranslations messages.RawMessages
 	}
 
 	translations := make(map[string]langTranslations)
@@ -88,7 +89,7 @@ func combineTranslations(translationsDir string, activeTranslations []string, de
 
 		translations[languageID] = langTranslations{
 			filename:        file,
-			rawTranslations: rawTranslations,
+			rawTranslations: *rawTranslations,
 		}
 	}
 
@@ -109,26 +110,37 @@ func combineTranslations(translationsDir string, activeTranslations []string, de
 			return fmt.Errorf("error writing buffer: %w", err)
 		}
 
-		for i, active := range activeTranslations {
-			val, ok := rawTranslations.rawTranslations[active]
+		for _, active := range activeTranslations {
+			val, ok := rawTranslations.rawTranslations.Messages[active]
 			if !ok {
 				if defaultTranslation != nil {
-					val = defaultTranslation.rawTranslations[active]
+					val = defaultTranslation.rawTranslations.Messages[active]
 				} else {
 					val = ""
 				}
 			}
 
-			var line string = fmt.Sprintf("\t\"%s\": \"%s\"", active, val)
-			if i < len(activeTranslations)-1 {
-				line += ","
-			}
-			line += "\n"
+			var line string = fmt.Sprintf("\t\"%s\": \"%s\",\n", active, val)
 
 			_, err := newTranslations.WriteString(line)
 			if err != nil {
 				return fmt.Errorf("error writing buffer: %w", err)
 			}
+		}
+
+		// Write the transformers to json.
+		transformerData, err := json.MarshalIndent(rawTranslations.rawTranslations.Transformers, "", "    ")
+		if err != nil {
+			return fmt.Errorf("error marshalling transformers: %w", err)
+		}
+
+		_, err = newTranslations.WriteString("\t\"@transform\": ")
+		if err != nil {
+			return fmt.Errorf("error writing buffer: %w", err)
+		}
+		_, err = newTranslations.Write(transformerData)
+		if err != nil {
+			return fmt.Errorf("error writing buffer: %w", err)
 		}
 
 		_, err = newTranslations.WriteString("}")

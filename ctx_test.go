@@ -40,6 +40,12 @@ func TestLanguageCtx(t *testing.T) {
 			input:     "invalid",
 			expectErr: true,
 		},
+		{
+			// An accept header.
+			input:    "en-GB,en;q=0.5",
+			language: "en",
+			region:   "GB",
+		},
 	}
 
 	for _, c := range cases {

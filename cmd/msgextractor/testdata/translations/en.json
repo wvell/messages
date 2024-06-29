@@ -1,5 +1,9 @@
 {
 	"login.welcome": "Welcome :User",
 	"sub.translation": "Some sub translations",
-	"zipcode": "Zipcode"
-}
+	"zipcode": "Zipcode",
+	"@transform": {
+    "field": {
+        "first_name": "first name"
+    }
+}}

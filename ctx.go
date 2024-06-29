@@ -3,12 +3,14 @@ package messages
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"golang.org/x/text/language"
 )
 
 var (
 	languageKey = ctxKey("locale")
+	langRe      = regexp.MustCompile(`(?i)([a-z]{2,8})([-_][a-z]{4})?([-_][a-z]{2}|\d{3})?`)
 )
 
 // WithLanguage sets the language in the ctx.
@@ -16,6 +18,12 @@ var (
 // If the region can not reliably be parsed, it is set to an empty string.
 // An error is returned if the language can not be parsed.
 func WithLanguage(ctx context.Context, lang string) (context.Context, error) {
+	match := langRe.FindString(lang)
+	if match == "" {
+		return nil, fmt.Errorf("invalid language: %s", lang)
+	}
+	lang = match
+
 	id, err := ParseLanguage(lang)
 	if err != nil {
 		return nil, err

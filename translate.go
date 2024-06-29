@@ -11,7 +11,6 @@ import (
 )
 
 var isFile = regexp.MustCompile(`^([a-zA-Z]{2}(?:[-_][a-zA-Z]{2})?)\.json$`)
-var isTransformerFile = regexp.MustCompile(`^([a-zA-Z]{2}(?:[-_][a-zA-Z]{2})?)\.transformer.json$`)
 
 // FromDir reads all translations from the given directory and returns a new Translator.
 // The directory should contain simple json files with the translations.
@@ -28,15 +27,16 @@ var isTransformerFile = regexp.MustCompile(`^([a-zA-Z]{2}(?:[-_][a-zA-Z]{2})?)\.
 // Example without transformers: "The :field is required." -> "The first_name is required."
 // Example with transformers: "The :field is required." -> "The first name is required."
 //
-// The transformer file would look like this in this example.
+// Transformers use the @transform key in the translation file.
 //
 //	{
-//		"field": {
-//			"first_name" : "First name"
-//	 	}
+//		"translationname": "translation with some replacement :field",
+//		"@transform": {
+//			"field": {
+//				"first_name" : "First name"
+//	 		}
+//		}
 //	}
-//
-// Transformer files should have the same name as the translation file with the suffix .transform.json.
 func FromDir(dir string, opts ...Opt) (*Translator, error) {
 	t := newTranslator(opts...)
 
@@ -71,20 +71,16 @@ func TranslationFilesFromDir(dir string) (map[string]string, error) {
 		}
 
 		match := isFile.FindStringSubmatch(entry.Name())
-		if match == nil && !isTransformerFile.MatchString(entry.Name()) {
+		if match == nil {
 			return nil, fmt.Errorf("filename %s should have format en.json or en_US.json", entry.Name())
 		}
 
-		// Only read the file if it is a translation file.
-		// Transformer files are read in parseFile.
-		if match != nil {
-			langID, err := ParseLanguage(match[1])
-			if err != nil {
-				return nil, fmt.Errorf("parsing language id: %w", err)
-			}
-
-			files[langID.String()] = filepath.Join(dir, entry.Name())
+		langID, err := ParseLanguage(match[1])
+		if err != nil {
+			return nil, fmt.Errorf("parsing language id: %w", err)
 		}
+
+		files[langID.String()] = filepath.Join(dir, entry.Name())
 	}
 
 	return files, nil

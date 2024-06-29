@@ -38,13 +38,13 @@ func TestWriteTranslationFiles(t *testing.T) {
 	// Make sure the nl.json file was written with all translations.
 	rawTranslations, err := messages.RawTranslationsFromFile(nlFile)
 	require.NoError(t, err)
-	require.Len(t, rawTranslations, 3)
-	require.Contains(t, rawTranslations, "login.welcome")
-	require.Contains(t, rawTranslations, "sub.translation")
-	require.Contains(t, rawTranslations, "zipcode")
+	require.Len(t, rawTranslations.Messages, 3)
+	require.Contains(t, rawTranslations.Messages, "login.welcome")
+	require.Contains(t, rawTranslations.Messages, "sub.translation")
+	require.Contains(t, rawTranslations.Messages, "zipcode")
 
 	// Make sure every translation has an empty string value.
-	for _, value := range rawTranslations {
+	for _, value := range rawTranslations.Messages {
 		require.Equal(t, "", value)
 	}
 }
@@ -71,7 +71,7 @@ func TestWriteTranslationFilesWithDefault(t *testing.T) {
 	rawNlTranslations, err := messages.RawTranslationsFromFile(nlFile)
 	require.NoError(t, err)
 
-	require.Equal(t, rawEnTranslations, rawNlTranslations)
+	require.Equal(t, rawEnTranslations.Messages, rawNlTranslations.Messages)
 }
 
 func TestErrorOnUnknownDefaultLanguage(t *testing.T) {

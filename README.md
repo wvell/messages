@@ -60,8 +60,8 @@ You can use a capitalized replacement to to capitalize the replacement value:
 ```
 This will change the replacement value john to John.
 
-## Transformer files
-Transformer files allow you to replace placeholder values, which is particularly useful for validation messages. These files are named similarly to the translation files, with .transformer added.
+## Transformers
+Transformers allow you to replace placeholder values, which is particularly useful for validation messages.
 
 Using transformers allows you to reuse translations. The following example illutrates the required validation. Without transformers you would have to create a translation for each field(required.first_name, required.street).
 
@@ -70,18 +70,15 @@ es.json
 ```json
 {
   "required" : ":Field es requerido"
-}
-```
-
-es.transformer.json
-```json
-{
-  "field": {
-      "first_name": "nombre"
+  "@transform" : {
+    "field" : {
+      "first_name": "nombre",
       "street": "calle"
     }
+  }
 }
-
+```
+```go
 tr.Translate(ctx, "required", map[string]any{"field": "first_name"}) // Nombre es requerido
 tr.Translate(ctx, "required", map[string]any{"field": "street"}) // Calle es requerido
 ```
