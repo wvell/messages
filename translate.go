@@ -15,8 +15,8 @@ const (
 	// This is primarily used for the field names in validation messages.
 	attributesKey = "attributes"
 
-	// attributeReplacement is the key that is used for the :attribute replacement.
-	attributeReplacement = "attribute"
+	// AttributeKey is the key that is used for the :attribute replacement.
+	AttributeKey = "attribute"
 )
 
 // Key is a type that represents a translation key.
@@ -179,7 +179,7 @@ func (m *messages) format(translationKey Key, replacements map[string]any) strin
 		}
 
 		// Check if the replacement is :attribute.
-		if replacementName == attributeReplacement {
+		if replacementName == AttributeKey {
 			if value, ok := m.attributes[formattedValue]; ok {
 				formattedValue = value
 			}
