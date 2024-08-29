@@ -3,11 +3,11 @@ package messages
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"unicode"
+
+	"github.com/spf13/afero"
 )
 
 const (
@@ -25,7 +25,7 @@ type Key string
 
 var isFile = regexp.MustCompile(`^([a-zA-Z]{2}(?:[-_][a-zA-Z]{2})?)\.json$`)
 
-// FromDir reads all translations from the given directory and returns a new Translator.
+// NewTranslator reads all translations from the given directory and returns a new Translator.
 // The directory should contain simple json files with the translations.
 // The filename should be the language code, e.g. en.json.
 //
@@ -44,53 +44,26 @@ var isFile = regexp.MustCompile(`^([a-zA-Z]{2}(?:[-_][a-zA-Z]{2})?)\.json$`)
 //
 //	translator.Translate("validation.required", map[string]any{"attribute": "addr_street"})
 //	Output: Street is required.
-func FromDir(dir string, opts ...Opt) (*Translator, error) {
+func NewTranslator(fs afero.Fs, dir string, opts ...Opt) (*Translator, error) {
 	t := newTranslator(opts...)
 
-	files, err := TranslationFilesFromDir(dir)
+	parser := NewParser(fs)
+
+	files, err := parser.TranslationFilesFromDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("reading translations files: %w", err)
 	}
 
 	for languageID, file := range files {
-		messages, err := parseFile(file)
+		messages, err := parser.parseFile(file)
 		if err != nil {
 			return nil, fmt.Errorf("reading file %s: %w", file, err)
 		}
 
 		t.languages[languageID] = messages
 	}
+
 	return t, nil
-}
-
-// TranslationFilesFromDir returns all translation files from the given directory.
-func TranslationFilesFromDir(dir string) (map[string]string, error) {
-	// Read all files from the directory.
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, fmt.Errorf("reading translations: %w", err)
-	}
-
-	files := make(map[string]string)
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
-		match := isFile.FindStringSubmatch(entry.Name())
-		if match == nil {
-			return nil, fmt.Errorf("filename %s should have format en.json or en_US.json", entry.Name())
-		}
-
-		langID, err := ParseLanguage(match[1])
-		if err != nil {
-			return nil, fmt.Errorf("parsing language id: %w", err)
-		}
-
-		files[langID.String()] = filepath.Join(dir, entry.Name())
-	}
-
-	return files, nil
 }
 
 // NewTranslator creates a new translator with the given options.

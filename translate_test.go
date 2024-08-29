@@ -4,21 +4,22 @@ import (
 	"context"
 	"testing"
 
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
 )
 
 func TestInvalidTranslationFilename(t *testing.T) {
-	_, err := FromDir("./testdata/invalid-language")
+	_, err := NewTranslator(afero.NewOsFs(), "./testdata/invalid-language")
 	require.Error(t, err)
 }
 
 func TestErrOnDuplicateReplacementWithDifferentCase(t *testing.T) {
-	_, err := FromDir("./testdata/invalid-translation")
+	_, err := NewTranslator(afero.NewOsFs(), "./testdata/invalid-translation")
 	require.ErrorIs(t, err, ErrDuplicateReplacementWithDifferentCase)
 }
 
 func TestTranslations(t *testing.T) {
-	tr, err := FromDir("./testdata/valid")
+	tr, err := NewTranslator(afero.NewOsFs(), "./testdata/valid")
 	require.NoError(t, err)
 
 	ctx, err := WithLanguage(context.Background(), "en_US")
@@ -123,7 +124,7 @@ func TestTranslations(t *testing.T) {
 }
 
 func TestFallbackToLanguageWithoutRegion(t *testing.T) {
-	tr, err := FromDir("./testdata/valid")
+	tr, err := NewTranslator(afero.NewOsFs(), "./testdata/valid")
 	require.NoError(t, err)
 
 	ctx, err := WithLanguage(context.Background(), "nl_NL")
@@ -137,7 +138,7 @@ func TestFallbackToDefaultLanguage(t *testing.T) {
 	en, err := ParseLanguage("en-US")
 	require.NoError(t, err)
 
-	tr, err := FromDir("./testdata/valid", WithDefaultLanguage(en))
+	tr, err := NewTranslator(afero.NewOsFs(), "./testdata/valid", WithDefaultLanguage(en))
 	require.NoError(t, err)
 
 	ctx, err := WithLanguage(context.Background(), "de-AT")
@@ -148,7 +149,7 @@ func TestFallbackToDefaultLanguage(t *testing.T) {
 }
 
 func TestAttribute(t *testing.T) {
-	tr, err := FromDir("./testdata/valid")
+	tr, err := NewTranslator(afero.NewOsFs(), "./testdata/valid")
 	require.NoError(t, err)
 
 	ctx, err := WithLanguage(context.Background(), "en_US")

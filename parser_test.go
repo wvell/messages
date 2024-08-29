@@ -6,13 +6,16 @@ import (
 	"os"
 	"testing"
 
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
 )
 
 var genGolden = flag.Bool("gen_golden", false, "Generate golden template files")
 
 func TestAllowEmptyTranslationFiles(t *testing.T) {
-	_, err := RawTranslationsFromFile("./testdata/empty/empty.json")
+	parser := NewParser(afero.NewOsFs())
+
+	_, err := parser.MessagesFromFile("./testdata/empty/empty.json")
 	require.NoError(t, err)
 }
 

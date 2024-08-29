@@ -3,7 +3,6 @@ package extractor
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/wvell/messages"
 )
@@ -16,14 +15,11 @@ const (
 var (
 	usedVar                = "used.var"
 	unusedVar messages.Key = "unused.var"
+
+	tr *messages.Translator
 )
 
 func UseMessagesTranslate(ctx context.Context) {
-	tr, err := messages.FromDir("dir")
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	message := tr.Translate(context.Background(), "login.welcome", map[string]any{"user": "john"})
 	fmt.Println(message)
 

@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
 	"unicode"
 
+	"github.com/spf13/afero"
 	"golang.org/x/exp/maps"
 )
 
@@ -19,9 +20,47 @@ var (
 
 var messageRe = regexp.MustCompile(`:[A-Za-z]+(\.[A-Za-z]+)*`)
 
+func NewParser(fs afero.Fs) *Parser {
+	return &Parser{fs: fs}
+}
+
+type Parser struct {
+	fs afero.Fs
+}
+
+// TranslationFilesFromDir returns all translation files from the given directory.
+func (p *Parser) TranslationFilesFromDir(dir string) (map[string]string, error) {
+	// Read all files from the directory.
+	entries, err := afero.ReadDir(p.fs, dir)
+	if err != nil {
+		return nil, fmt.Errorf("reading translations: %w", err)
+	}
+
+	files := make(map[string]string)
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		match := isFile.FindStringSubmatch(entry.Name())
+		if match == nil {
+			return nil, fmt.Errorf("filename %s should have format en.json or en_US.json", entry.Name())
+		}
+
+		langID, err := ParseLanguage(match[1])
+		if err != nil {
+			return nil, fmt.Errorf("parsing language id: %w", err)
+		}
+
+		files[langID.String()] = filepath.Join(dir, entry.Name())
+	}
+
+	return files, nil
+}
+
 // parseFile reads the given file and parses the translations.
-func parseFile(file string) (*messages, error) {
-	rawMessages, err := RawTranslationsFromFile(file)
+func (p *Parser) parseFile(file string) (*messages, error) {
+	rawMessages, err := p.MessagesFromFile(file)
 	if err != nil {
 		return nil, fmt.Errorf("reading file: %w", err)
 	}
@@ -62,9 +101,9 @@ func parseFile(file string) (*messages, error) {
 }
 
 // RawTranslationsFromFile reads the translations from the given file and returns them as a map.
-func RawTranslationsFromFile(filename string) (*RawMessages, error) {
+func (p *Parser) MessagesFromFile(filename string) (*RawMessages, error) {
 	// Open the translations file.
-	f, err := os.Open(filename)
+	f, err := p.fs.Open(filename)
 	if err != nil {
 		return nil, fmt.Errorf("opening file: %w", err)
 	}

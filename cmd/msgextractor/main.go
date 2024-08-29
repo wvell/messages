@@ -7,8 +7,10 @@ import (
 	"log"
 	"os"
 
+	"github.com/spf13/afero"
 	"github.com/wvell/messages"
 	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 func main() {
@@ -48,7 +50,9 @@ func processTranslations(srcDir, translationsDir, defaultLang string, overwrite 
 		return fmt.Errorf("error reading translations from src: %w", err)
 	}
 
-	files, err := messages.TranslationFilesFromDir(translationsDir)
+	parser := messages.NewParser(afero.NewOsFs())
+
+	files, err := parser.TranslationFilesFromDir(translationsDir)
 	if err != nil {
 		return err
 	}
@@ -72,7 +76,7 @@ func processTranslations(srcDir, translationsDir, defaultLang string, overwrite 
 			return fmt.Errorf("default language %s not found in translation files %q", defaultLanguageID.String(), maps.Keys(files))
 		}
 
-		defaultTranslations, err = messages.RawTranslationsFromFile(files[defaultLanguageID.String()])
+		defaultTranslations, err = parser.MessagesFromFile(files[defaultLanguageID.String()])
 		if err != nil {
 			return fmt.Errorf("reading default language file: %w", err)
 		}
@@ -80,14 +84,23 @@ func processTranslations(srcDir, translationsDir, defaultLang string, overwrite 
 
 	// Loop over all translation files and update them.
 	for _, file := range files {
-		existingTranslations, err := messages.RawTranslationsFromFile(file)
+		existingTranslations, err := parser.MessagesFromFile(file)
 		if err != nil {
-			return fmt.Errorf("reading language file: %w", err)
+			return fmt.Errorf("reading language file %s: %w", file, err)
 		}
 
 		// Remove existing translations that are not present in the source code.
 		if overwrite {
 			existingTranslations.Messages = make(map[string]string)
+		} else {
+			// Output all translations that are in the translation file but not in the source code.
+			for key := range existingTranslations.Messages {
+				if slices.Contains(translationKeysFromSrcDir, key) {
+					continue
+				}
+
+				log.Printf("translation %q is present in file %s but not found in source code, use -remove to remove this translation", key, file)
+			}
 		}
 
 		for _, key := range translationKeysFromSrcDir {
