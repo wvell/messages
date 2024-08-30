@@ -89,9 +89,15 @@ func processTranslations(srcDir, translationsDir, defaultLang string, overwrite 
 			return fmt.Errorf("reading language file %s: %w", file, err)
 		}
 
-		// Remove existing translations that are not present in the source code.
+		// Remove existing translations that are not present in the src translations.
 		if overwrite {
-			existingTranslations.Messages = make(map[string]string)
+			for key := range existingTranslations.Messages {
+				if slices.Contains(translationKeysFromSrcDir, key) {
+					continue
+				}
+
+				delete(existingTranslations.Messages, key)
+			}
 		} else {
 			// Output all translations that are in the translation file but not in the source code.
 			for key := range existingTranslations.Messages {
