@@ -26,6 +26,17 @@ func WithLanguage(ctx context.Context, lang string) (context.Context, error) {
 	return toCtx(ctx, id), nil
 }
 
+// ToCtx is comparable to WithLanguage, but does not return an error when parsing the language fails.
+// On failure it will return the context as is.
+func ToCtx(ctx context.Context, lang string) context.Context {
+	_ctx, err := WithLanguage(ctx, lang)
+	if err != nil {
+		return ctx
+	}
+
+	return _ctx
+}
+
 // LanguageFromCtx returns the language from the ctx.
 func FromCtx(ctx context.Context) LanguageID {
 	l, ok := ctx.Value(languageKey).(LanguageID)
