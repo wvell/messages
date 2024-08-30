@@ -89,7 +89,7 @@ type Translator struct {
 // Opt is a functional option for the Translator.
 type Opt func(*Translator)
 
-// FromLanguage returns a new translator for the given lang or an error if lang is not correctly formed.
+// Translate translates the key for the given lang(in ctx).
 func (t *Translator) Translate(ctx context.Context, key Key, replacements map[string]any) string {
 	messages := t.messages(ctx)
 	if messages == nil {
