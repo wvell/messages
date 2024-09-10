@@ -3,6 +3,7 @@ package messages
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 	"unicode"
@@ -165,17 +166,8 @@ func (m *messages) format(translationKey Key, replacements map[string]any) strin
 		// Check if the replacement is given by the caller.
 		value, ok := replacements[replacementName]
 		if ok {
-			switch v := value.(type) {
-			case string:
-				formattedValue = v
-			case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-				formattedValue = fmt.Sprintf("%d", v)
-			case float32, float64:
-				formattedValue = fmt.Sprintf("%.2f", v)
-			case bool:
-				formattedValue = fmt.Sprintf("%t", v)
-			}
 			// No match formattedValue will be empty.
+			formattedValue = formatReplacement(value)
 		}
 
 		// Check if the replacement is :attribute.
@@ -196,6 +188,47 @@ func (m *messages) format(translationKey Key, replacements map[string]any) strin
 	}
 
 	return translationMessage
+}
+
+func formatReplacement(value any) string {
+	switch v := value.(type) {
+	case string:
+		return v
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+		return fmt.Sprintf("%d", v)
+	case float32, float64:
+		return fmt.Sprintf("%.2f", v)
+	case bool:
+		return fmt.Sprintf("%t", v)
+	}
+
+	valueOf := reflect.ValueOf(value)
+
+	if valueOf.Kind() == reflect.String {
+		return reflect.ValueOf(value).String()
+	} else if valueOf.Kind() == reflect.Slice {
+		var strSlice []string
+
+		// Iterate through the slice elements and convert each to string
+		for i := 0; i < valueOf.Len(); i++ {
+			strSlice = append(strSlice, formatReplacement(valueOf.Index(i).Interface()))
+		}
+
+		return strings.Join(strSlice, ", ")
+	} else if valueOf.Kind() == reflect.Map {
+		var strSlice []string
+
+		for _, key := range valueOf.MapKeys() {
+			// Get the key and value as strings
+			keyStr := formatReplacement(key.Interface())
+			valueStr := formatReplacement(valueOf.MapIndex(key).Interface())
+			strSlice = append(strSlice, fmt.Sprintf("%s: %s", keyStr, valueStr))
+		}
+
+		return strings.Join(strSlice, ", ")
+	}
+
+	return ""
 }
 
 // Message represents a message for a specific language.

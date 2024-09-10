@@ -18,6 +18,8 @@ func TestErrOnDuplicateReplacementWithDifferentCase(t *testing.T) {
 	require.ErrorIs(t, err, ErrDuplicateReplacementWithDifferentCase)
 }
 
+type customString string
+
 func TestTranslations(t *testing.T) {
 	tr, err := NewTranslator(afero.NewOsFs(), "./testdata/valid")
 	require.NoError(t, err)
@@ -100,18 +102,32 @@ func TestTranslations(t *testing.T) {
 			expected: "Total: ",
 		},
 		{
-			name: "slice",
+			name: "slice string",
 			replacements: map[string]any{
 				"total": []string{"test"},
 			},
-			expected: "Total: ",
+			expected: "Total: test",
+		},
+		{
+			name: "slice int",
+			replacements: map[string]any{
+				"total": []int{22},
+			},
+			expected: "Total: 22",
 		},
 		{
 			name: "map",
 			replacements: map[string]any{
-				"total": map[string]string{"test": "test"},
+				"total": map[string]string{"somekey": "somevalue"},
 			},
-			expected: "Total: ",
+			expected: "Total: somekey: somevalue",
+		},
+		{
+			name: "custom string type",
+			replacements: map[string]any{
+				"total": customString("test"),
+			},
+			expected: "Total: test",
 		},
 	}
 
